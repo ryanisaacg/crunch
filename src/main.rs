@@ -1,7 +1,7 @@
 use crunch::Chip8;
 
 use sdl2::event::Event;
-use sdl2::keyboard::Keycode;
+use sdl2::keyboard::{KeyboardState, Keycode, Scancode};
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use std::time::Duration;
@@ -53,9 +53,27 @@ pub fn main() -> Result<(), String> {
         }
         canvas.present();
         std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
-        chip.advance();
+        let keyboard = KeyboardState::new(&event_pump);
+        let are_keys_pressed = [
+            keyboard.is_scancode_pressed(Scancode::X),
+            keyboard.is_scancode_pressed(Scancode::Num1),
+            keyboard.is_scancode_pressed(Scancode::Num2),
+            keyboard.is_scancode_pressed(Scancode::Num3),
+            keyboard.is_scancode_pressed(Scancode::Q),
+            keyboard.is_scancode_pressed(Scancode::W),
+            keyboard.is_scancode_pressed(Scancode::E),
+            keyboard.is_scancode_pressed(Scancode::A),
+            keyboard.is_scancode_pressed(Scancode::S),
+            keyboard.is_scancode_pressed(Scancode::D),
+            keyboard.is_scancode_pressed(Scancode::Z),
+            keyboard.is_scancode_pressed(Scancode::C),
+            keyboard.is_scancode_pressed(Scancode::Num4),
+            keyboard.is_scancode_pressed(Scancode::R),
+            keyboard.is_scancode_pressed(Scancode::F),
+            keyboard.is_scancode_pressed(Scancode::V),
+        ];
+        chip.advance(&are_keys_pressed);
         // TODO: beep if beep > 0
-        // The rest of the game loop goes here...
     }
 
     Ok(())

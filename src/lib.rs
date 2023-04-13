@@ -27,13 +27,13 @@ impl Chip8 {
         }
     }
 
-    pub fn advance(&mut self) {
+    pub fn advance(&mut self, keypad: &[bool; 16]) {
         let Chip8 {
             cpu,
             display,
             memory,
         } = self;
-        advance(cpu, display, memory);
+        advance(cpu, display, memory, keypad);
     }
 
     pub fn display(&self) -> &Display {
@@ -41,7 +41,7 @@ impl Chip8 {
     }
 }
 
-pub fn advance(cpu: &mut CPU, display: &mut Display, memory: &mut Memory) {
+pub fn advance(cpu: &mut CPU, display: &mut Display, memory: &mut Memory, keypad: &[bool; 16]) {
     let instr = [
         memory.get(cpu.program_counter),
         memory.get(cpu.program_counter + 1),
@@ -150,7 +150,7 @@ pub fn advance(cpu: &mut CPU, display: &mut Display, memory: &mut Memory) {
                     } else {
                         (b as i16) - (a as i16)
                     };
-                    if dbg!(result) >= 0 {
+                    if result >= 0 {
                         cpu.set_register(r, result as u8);
                         cpu.set_register(0xF, 1);
                     } else {
@@ -214,7 +214,20 @@ pub fn advance(cpu: &mut CPU, display: &mut Display, memory: &mut Memory) {
         }
         0xE => {
             // skip based on input
-            // TODO: keyboard input
+            let op = (instr & 0x0F00) >> 8;
+            match instr & 0x00FF {
+                0x9E => {
+                    if keypad[op as usize] {
+                        cpu.program_counter += 2;
+                    }
+                }
+                0xA1 => {
+                    if !keypad[op as usize] {
+                        cpu.program_counter += 2;
+                    }
+                }
+                _ => panic!("unknown instruction: {}", instr),
+            }
         }
         0xF => {
             let op = (instr & 0x0F00) >> 8;
@@ -236,7 +249,11 @@ pub fn advance(cpu: &mut CPU, display: &mut Display, memory: &mut Memory) {
                     cpu.index_register = result;
                 }
                 0x0A => {
-                    // TODO: block and wait for key input
+                    if let Some((key, _)) = keypad.iter().enumerate().filter(|(_, x)| **x).next() {
+                        cpu.set_register(op, key as u8);
+                    } else {
+                        cpu.program_counter -= 2;
+                    }
                 }
                 0x29 => {
                     cpu.index_register = (FONT_START as u16) + (cpu.register(op) as u16) & 0x0F * 5;
